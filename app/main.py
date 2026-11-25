@@ -70,22 +70,16 @@ DASHBOARD_HTML = """<!doctype html>
       background: var(--bg);
       color: var(--text);
       min-height: 100vh;
-      padding: 26px 18px 42px;
       transition: background-color 0.25s ease, color 0.25s ease;
     }
     .shell {
-      max-width: 1180px;
-      margin: 0 auto;
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 20px;
-      box-shadow: var(--shadow);
-      overflow: hidden;
+      width: 100%;
+      min-height: 100vh;
     }
     .shell-header {
-      padding: 20px 26px;
+      padding: 18px max(24px, calc((100% - 1180px) / 2));
       border-bottom: 1px solid var(--border);
-      background: var(--surface-2);
+      background: var(--surface);
       display: flex;
       flex-wrap: wrap;
       align-items: center;
@@ -109,7 +103,11 @@ DASHBOARD_HTML = """<!doctype html>
     }
     .theme-btn:hover { background: var(--surface-hover); }
 
-    .shell-body { padding: 24px 26px; }
+    .shell-body {
+      width: min(1180px, calc(100% - 48px));
+      margin: 0 auto;
+      padding: 26px 0 40px;
+    }
 
     .kpi-grid {
       display: grid; grid-template-columns: repeat(4, minmax(0, 1fr));
