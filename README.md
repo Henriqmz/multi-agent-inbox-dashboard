@@ -1,6 +1,8 @@
 # Multi-Agent Inbox & Lead Triage Dashboard
 
-Painel web full-stack em **FastAPI + SQLite + HTML/JS** para centralizar conversas de múltiplos canais (WhatsApp, LinkedIn Inbox, Chat Web), rotear atendimentos entre agentes especializados (Comercial, Suporte, Financeiro) e aplicar **guardrails de qualificação antes de promover um lead ao CRM** (ex.: exigir contato validado antes do envio ao funil comercial).
+![Interface Multi-Agent Inbox](docs/preview.png)
+
+Painel web full-stack em **FastAPI + SQLite + HTML/JS** para centralizar conversas de múltiplos canais (WhatsApp, LinkedIn Inbox, Chat Web), rotear atendimentos entre agentes especializados (Comercial, Suporte, Financeiro), simular novas entradas em tempo real e aplicar **guardrails de qualificação antes de promover um lead ao CRM** (ex.: exigir contato WhatsApp validado antes do envio ao funil comercial).
 
 ## Arquitetura
 

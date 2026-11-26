@@ -13,7 +13,7 @@ from .triage import InboxStore
 store = InboxStore(Path(os.getenv("DB_PATH", "data/inbox.db")))
 store.seed_demo_if_empty()
 
-app = FastAPI(title="Multi-Agent Inbox Dashboard", version="2.0.0")
+app = FastAPI(title="Multi-Agent Inbox Dashboard", version="2.1.0")
 
 DASHBOARD_HTML = """<!doctype html>
 <html lang="pt-BR" data-theme="dark">
@@ -41,7 +41,6 @@ DASHBOARD_HTML = """<!doctype html>
       --warn-text: #fcd34d;
       --err-bg: rgba(248, 113, 113, 0.15);
       --err-text: #fca5a5;
-      --shadow: 0 24px 54px rgba(0, 0, 0, 0.55);
     }
     [data-theme="light"] {
       --bg: #f0f7fc;
@@ -61,7 +60,6 @@ DASHBOARD_HTML = """<!doctype html>
       --warn-text: #b45309;
       --err-bg: #fef2f2;
       --err-text: #b91c1c;
-      --shadow: 0 18px 40px rgba(5, 10, 15, 0.1);
     }
     * { box-sizing: border-box; }
     body {
@@ -72,19 +70,11 @@ DASHBOARD_HTML = """<!doctype html>
       min-height: 100vh;
       transition: background-color 0.25s ease, color 0.25s ease;
     }
-    .shell {
-      width: 100%;
-      min-height: 100vh;
-    }
     .shell-header {
       padding: 18px max(24px, calc((100% - 1180px) / 2));
       border-bottom: 1px solid var(--border);
       background: var(--surface);
-      display: flex;
-      flex-wrap: wrap;
-      align-items: center;
-      justify-content: space-between;
-      gap: 1rem;
+      display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 1rem;
     }
     .brand { display: flex; align-items: center; gap: 0.8rem; }
     .logo-mark {
@@ -94,21 +84,27 @@ DASHBOARD_HTML = """<!doctype html>
     }
     .brand-title { font-weight: 800; font-size: 1.08rem; }
     .brand-sub { font-size: 0.78rem; color: var(--muted); }
-
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center; gap: 0.4rem;
+      padding: 0.54rem 0.98rem; border-radius: 9px; border: 1px solid var(--border);
+      background: var(--surface); color: var(--text); font: inherit; font-size: 0.83rem;
+      font-weight: 700; cursor: pointer; text-decoration: none;
+    }
+    .btn:hover { background: var(--surface-hover); border-color: var(--accent-border); }
+    .btn-primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+    .btn-sm { padding: 0.4rem 0.75rem; font-size: 0.77rem; border-radius: 7px; }
     .theme-btn {
       display: inline-flex; align-items: center; gap: 0.45rem;
       padding: 0.48rem 0.9rem; border-radius: 999px;
       border: 1px solid var(--accent-border); background: var(--surface); color: var(--text);
       font: inherit; font-size: 0.82rem; font-weight: 700; cursor: pointer;
     }
-    .theme-btn:hover { background: var(--surface-hover); }
 
     .shell-body {
       width: min(1180px, calc(100% - 48px));
       margin: 0 auto;
       padding: 26px 0 40px;
     }
-
     .kpi-grid {
       display: grid; grid-template-columns: repeat(4, minmax(0, 1fr));
       gap: 0.9rem; margin-bottom: 20px;
@@ -121,22 +117,20 @@ DASHBOARD_HTML = """<!doctype html>
     .kpi-val { font-size: 1.65rem; font-weight: 800; color: var(--accent); margin-top: 0.2rem; }
 
     .inbox-split {
-      display: grid; grid-template-columns: 360px minmax(0, 1fr); gap: 18px;
-      min-height: 470px;
+      display: grid; grid-template-columns: 370px minmax(0, 1fr); gap: 18px; min-height: 480px;
     }
     .list-pane, .detail-pane {
       background: var(--surface-2); border: 1px solid var(--border);
       border-radius: 14px; padding: 16px; display: flex; flex-direction: column;
     }
-    .search-input {
+    .input, select {
       width: 100%; padding: 0.58rem 0.85rem; border-radius: 9px;
       border: 1px solid var(--border); background: var(--bg); color: var(--text);
-      font: inherit; font-size: 0.86rem; margin-bottom: 12px;
+      font: inherit; font-size: 0.86rem;
     }
     .conv-item {
       padding: 12px; border-radius: 10px; border: 1px solid var(--border);
-      background: var(--surface); margin-bottom: 9px; cursor: pointer;
-      transition: all 0.15s ease;
+      background: var(--surface); margin-bottom: 9px; cursor: pointer; transition: all 0.15s ease;
     }
     .conv-item:hover { background: var(--surface-hover); border-color: var(--accent-border); }
     .conv-item.active { border-color: var(--accent); border-left: 4px solid var(--accent); }
@@ -157,24 +151,31 @@ DASHBOARD_HTML = """<!doctype html>
       border-radius: 12px; padding: 14px 16px; margin: 12px 0; font-size: 0.92rem;
     }
     textarea {
-      width: 100%; min-height: 110px; padding: 12px; border-radius: 10px;
+      width: 100%; min-height: 105px; padding: 12px; border-radius: 10px;
       border: 1px solid var(--border); background: var(--bg); color: var(--text);
       font: inherit; font-size: 0.88rem; resize: vertical;
     }
-    .guardrail-box {
-      padding: 10px 14px; border-radius: 10px; font-size: 0.82rem; margin: 12px 0;
-    }
+    .guardrail-box { padding: 12px 14px; border-radius: 10px; font-size: 0.83rem; margin: 12px 0; }
     .guard-ok { background: var(--ok-bg); color: var(--ok-text); }
     .guard-block { background: var(--err-bg); color: var(--err-text); }
-
     .actions { display: flex; flex-wrap: wrap; gap: 0.6rem; margin-top: auto; padding-top: 12px; }
-    .btn {
-      padding: 0.62rem 1.05rem; border-radius: 9px; border: 1px solid var(--border);
-      background: var(--surface); color: var(--text); font: inherit; font-size: 0.84rem;
-      font-weight: 700; cursor: pointer;
-    }
-    .btn-primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
     .mono { font-family: "JetBrains Mono", monospace; font-size: 0.76rem; color: var(--muted); }
+
+    .modal-backdrop {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.65); display: none;
+      place-items: center; padding: 20px; z-index: 50;
+    }
+    .modal-backdrop.open { display: grid; }
+    .modal {
+      width: min(470px, 100%); background: var(--surface-2); border: 1px solid var(--accent-border);
+      border-radius: 16px; padding: 1.4rem;
+    }
+    .toast {
+      position: fixed; right: 24px; bottom: 24px; padding: 0.72rem 1.1rem; border-radius: 10px;
+      background: var(--accent); color: var(--accent-ink); font-weight: 700; font-size: 0.83rem;
+      opacity: 0; pointer-events: none; transition: opacity 0.2s ease; z-index: 60;
+    }
+    .toast.show { opacity: 1; }
 
     @media (max-width: 900px) {
       .kpi-grid { grid-template-columns: repeat(2, 1fr); }
@@ -192,10 +193,14 @@ DASHBOARD_HTML = """<!doctype html>
           <div class="brand-sub">Roteamento por Intenção · Human-in-the-Loop · Guardrail CRM</div>
         </div>
       </div>
-      <button id="themeToggle" class="theme-btn" type="button">
-        <span id="themeIcon">☀</span>
-        <span id="themeLabel">Modo Claro</span>
-      </button>
+      <div style="display:flex;gap:0.55rem;align-items:center">
+        <button id="openSimBtn" class="btn btn-primary" type="button">+ Simular Mensagem</button>
+        <a href="/docs" target="_blank" class="btn">API /docs</a>
+        <button id="themeToggle" class="theme-btn" type="button">
+          <span id="themeIcon">☀</span>
+          <span id="themeLabel">Modo Claro</span>
+        </button>
+      </div>
     </header>
 
     <main class="shell-body">
@@ -208,7 +213,7 @@ DASHBOARD_HTML = """<!doctype html>
 
       <section class="inbox-split">
         <aside class="list-pane">
-          <input id="searchInput" class="search-input" placeholder="Filtrar contato, canal ou agente..." />
+          <input id="searchInput" class="input" style="margin-bottom:12px" placeholder="Filtrar contato, canal ou agente..." />
           <div id="convList"></div>
         </aside>
         <section class="detail-pane" id="detailPane">
@@ -217,6 +222,37 @@ DASHBOARD_HTML = """<!doctype html>
       </section>
     </main>
   </div>
+
+  <div id="simModal" class="modal-backdrop">
+    <form id="simForm" class="modal">
+      <div class="mono">Classificador Automático (sales / billing / support)</div>
+      <h3 style="margin:4px 0 12px">Simular Mensagem Recebida</h3>
+      <div style="margin-bottom:0.75rem">
+        <label class="mono">Nome do Contato</label>
+        <input id="sName" class="input" placeholder="Ex.: Roberto Azevedo" required />
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.6rem;margin-bottom:0.75rem">
+        <div>
+          <label class="mono">Canal</label>
+          <select id="sChannel"><option value="social_inbox">social_inbox</option><option value="whatsapp">whatsapp</option><option value="web_chat">web_chat</option></select>
+        </div>
+        <div>
+          <label class="mono">WhatsApp (opcional)</label>
+          <input id="sPhone" class="input" placeholder="+5511999887766" />
+        </div>
+      </div>
+      <div style="margin-bottom:0.9rem">
+        <label class="mono">Texto da Mensagem</label>
+        <textarea id="sMsg" placeholder="Ex.: Preciso de orçamento anual para 50 licenças..." required></textarea>
+      </div>
+      <div style="display:flex;justify-content:flex-end;gap:0.5rem">
+        <button type="button" class="btn" onclick="document.getElementById('simModal').classList.remove('open')">Cancelar</button>
+        <button type="submit" class="btn btn-primary">Roteamento IA →</button>
+      </div>
+    </form>
+  </div>
+
+  <div id="toast" class="toast"></div>
 
   <script>
     const root = document.documentElement;
@@ -230,6 +266,13 @@ DASHBOARD_HTML = """<!doctype html>
     document.getElementById("themeToggle").addEventListener("click", () => {
       applyTheme(root.getAttribute("data-theme") === "dark" ? "light" : "dark");
     });
+
+    function toast(msg) {
+      const el = document.getElementById("toast");
+      el.textContent = msg;
+      el.classList.add("show");
+      setTimeout(() => el.classList.remove("show"), 2600);
+    }
 
     let conversations = [];
     let selectedId = null;
@@ -252,7 +295,9 @@ DASHBOARD_HTML = """<!doctype html>
       conversations.filter(c => !q || `${c.contact_name} ${c.channel} ${c.assigned_agent} ${c.last_message}`.toLowerCase().includes(q)).forEach(c => {
         const div = document.createElement("div");
         div.className = "conv-item" + (c.conv_id === selectedId ? " active" : "");
-        const stBadge = c.status === "PROMOTED_TO_CRM" ? '<span class="badge badge-ok">CRM</span>' : '<span class="badge badge-warn">TRIAGE</span>';
+        const stBadge = c.status === "PROMOTED_TO_CRM"
+          ? '<span class="badge badge-ok">CRM</span>'
+          : (c.status === "REPLIED" ? '<span class="badge badge-ok">RESPONDIDO</span>' : '<span class="badge badge-warn">TRIAGE</span>');
         div.innerHTML = `
           <div><span class="badge">${c.assigned_agent}</span>${stBadge}</div>
           <div class="conv-name">${c.contact_name}</div>
@@ -270,7 +315,13 @@ DASHBOARD_HTML = """<!doctype html>
       const hasWa = Boolean(c.whatsapp_phone);
       const guardHtml = hasWa
         ? `<div class="guardrail-box guard-ok"><strong>✓ WhatsApp validado (${c.whatsapp_phone}):</strong> contato liberado para promoção ao CRM.</div>`
-        : `<div class="guardrail-box guard-block"><strong>✕ Guardrail ativo:</strong> sem WhatsApp validado — promoção ao CRM bloqueada até captura do telefone.</div>`;
+        : `<div class="guardrail-box guard-block">
+            <strong>✕ Guardrail ativo:</strong> sem WhatsApp validado — promoção ao CRM bloqueada.<br/>
+            <div style="display:flex;gap:0.45rem;margin-top:8px">
+              <input id="capturePhoneInput" class="input" placeholder="Capturar WhatsApp (+5511999887766)" style="max-width:260px" />
+              <button type="button" class="btn btn-sm btn-primary" onclick="savePhone('${c.conv_id}')">Validar WhatsApp</button>
+            </div>
+          </div>`;
       pane.innerHTML = `
         <div><span class="badge">${c.assigned_agent}</span><span class="badge">${c.channel}</span><span class="mono">${c.conv_id}</span></div>
         <h2 style="margin:8px 0 4px">${c.contact_name}</h2>
@@ -280,16 +331,65 @@ DASHBOARD_HTML = """<!doctype html>
         ${guardHtml}
         <div class="actions">
           <button class="btn btn-primary" onclick="promote('${c.conv_id}')">Promover ao CRM</button>
-          <button class="btn" onclick="alert('Resposta aprovada na fila de envio!')">Aprovar Resposta IA</button>
+          <button class="btn" onclick="approveReply('${c.conv_id}')">Aprovar &amp; Enviar Resposta</button>
         </div>
       `;
     }
 
-    async function promote(id) {
+    window.savePhone = async (id) => {
+      const phone = document.getElementById("capturePhoneInput").value;
+      const r = await fetch(`/api/conversations/${id}/phone`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ whatsapp_phone: phone }),
+      });
+      const data = await r.json();
+      if (!r.ok) toast(data.detail);
+      else { toast("WhatsApp validado! Guardrail liberado."); load(); }
+    };
+
+    window.approveReply = async (id) => {
+      const text = document.getElementById("replyBox").value;
+      const r = await fetch(`/api/conversations/${id}/reply`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ reply_text: text }),
+      });
+      if (r.ok) { toast("Resposta aprovada e registrada!"); load(); }
+    };
+
+    window.promote = async (id) => {
       const r = await fetch(`/api/conversations/${id}/promote`, { method: "POST" });
       const data = await r.json();
-      if (!r.ok) alert(data.detail); else load();
-    }
+      if (!r.ok) toast(data.detail);
+      else { toast("Lead promovido ao CRM com sucesso!"); load(); }
+    };
+
+    document.getElementById("openSimBtn").addEventListener("click", () => {
+      document.getElementById("simModal").classList.add("open");
+    });
+
+    document.getElementById("simForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const convId = `C-${Math.floor(200 + Math.random() * 799)}`;
+      const body = {
+        conv_id: convId,
+        channel: document.getElementById("sChannel").value,
+        contact_name: document.getElementById("sName").value,
+        message_text: document.getElementById("sMsg").value,
+        whatsapp_phone: document.getElementById("sPhone").value,
+      };
+      const created = await (await fetch("/api/conversations", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      })).json();
+      e.target.reset();
+      document.getElementById("simModal").classList.remove("open");
+      selectedId = created.conv_id;
+      toast(`Classificado automaticamente para ${created.assigned_agent}!`);
+      load();
+    });
 
     document.getElementById("searchInput").addEventListener("input", renderList);
     load();
@@ -305,6 +405,14 @@ class IncomingMessage(BaseModel):
     contact_name: str
     message_text: str
     whatsapp_phone: str = ""
+
+
+class PhoneUpdatePayload(BaseModel):
+    whatsapp_phone: str
+
+
+class ReplyApprovalPayload(BaseModel):
+    reply_text: str
 
 
 @app.get("/", response_class=HTMLResponse)
@@ -326,6 +434,24 @@ def create_conversation(body: IncomingMessage) -> dict[str, Any]:
         message_text=body.message_text,
         whatsapp_phone=body.whatsapp_phone,
     )
+
+
+@app.patch("/api/conversations/{conv_id}/phone")
+def patch_phone(conv_id: str, body: PhoneUpdatePayload) -> dict[str, Any]:
+    try:
+        return store.update_whatsapp_phone(conv_id, body.whatsapp_phone)
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail=str(exc))
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc))
+
+
+@app.post("/api/conversations/{conv_id}/reply")
+def post_reply(conv_id: str, body: ReplyApprovalPayload) -> dict[str, Any]:
+    try:
+        return store.approve_reply(conv_id, body.reply_text)
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail=str(exc))
 
 
 @app.post("/api/conversations/{conv_id}/promote")

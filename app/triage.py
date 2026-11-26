@@ -84,6 +84,32 @@ class InboxStore:
             row = conn.execute("SELECT * FROM conversations WHERE conv_id = ?", (conv_id,)).fetchone()
             return dict(row)
 
+    def update_whatsapp_phone(self, conv_id: str, whatsapp_phone: str) -> dict[str, Any]:
+        cleaned = re.sub(r"[\s()-]", "", (whatsapp_phone or "").strip())
+        if not is_valid_whatsapp_phone(cleaned):
+            raise ValueError("Informe um número válido com DDI/DDD (ex.: +5511999887766).")
+        with self._connect() as conn:
+            row = conn.execute("SELECT * FROM conversations WHERE conv_id = ?", (conv_id,)).fetchone()
+            if not row:
+                raise KeyError(f"Conversa '{conv_id}' não encontrada.")
+            conn.execute(
+                "UPDATE conversations SET whatsapp_phone = ?, updated_at = ? WHERE conv_id = ?",
+                (cleaned, datetime.now(timezone.utc).isoformat(), conv_id),
+            )
+            return dict(conn.execute("SELECT * FROM conversations WHERE conv_id = ?", (conv_id,)).fetchone())
+
+    def approve_reply(self, conv_id: str, reply_text: str) -> dict[str, Any]:
+        with self._connect() as conn:
+            row = conn.execute("SELECT * FROM conversations WHERE conv_id = ?", (conv_id,)).fetchone()
+            if not row:
+                raise KeyError(f"Conversa '{conv_id}' não encontrada.")
+            new_status = row["status"] if row["status"] == "PROMOTED_TO_CRM" else "REPLIED"
+            conn.execute(
+                "UPDATE conversations SET suggested_reply = ?, status = ?, updated_at = ? WHERE conv_id = ?",
+                (reply_text.strip(), new_status, datetime.now(timezone.utc).isoformat(), conv_id),
+            )
+            return dict(conn.execute("SELECT * FROM conversations WHERE conv_id = ?", (conv_id,)).fetchone())
+
     def promote_to_crm(self, conv_id: str) -> dict[str, Any]:
         """Promotes a conversation to CRM ONLY if a valid WhatsApp phone has been captured."""
         with self._connect() as conn:
